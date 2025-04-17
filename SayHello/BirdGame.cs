@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
-
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace ParabolaSimulation
 {
@@ -9,14 +10,15 @@ namespace ParabolaSimulation
     {
         private TextBox velocityInput, angleInput, timeStepInput, massInput;
         private TextBlock resultBlock;
-        
+        private Canvas drawingCanvas;
 
         public MainWindow()
         {
             Title = "Моделирование полета птицы";
-            Width = 400;
-            Height = 400;
+            Width = 1000;
+            Height = 800;
 
+            ScrollViewer scrollViewer = new ScrollViewer();
             StackPanel panel = new StackPanel { Margin = new Thickness(10) };
 
             panel.Children.Add(new TextBlock { Text = "Укажите скорость тела:" });
@@ -35,20 +37,34 @@ namespace ParabolaSimulation
             massInput = new TextBox();
             panel.Children.Add(massInput);
 
-            Button calculateButton = new Button { Content = "Получить результат" };
+            Button calculateButton = new Button { Content = "Рассчитать" };
             calculateButton.Click += CalculateButton_Click;
             panel.Children.Add(calculateButton);
 
-            resultBlock = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10) };
+            resultBlock = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(10),
+                FontSize = 16
+            };
             panel.Children.Add(resultBlock);
 
-            Content = panel;
+            drawingCanvas = new Canvas
+            {
+                Background = Brushes.White,
+                Height = 300,
+                Margin = new Thickness(10)
+            };
+            panel.Children.Add(drawingCanvas);
+
+            scrollViewer.Content = panel;
+            Content = scrollViewer;
         }
 
         private void CalculateButton_Click(object sender, RoutedEventArgs e)
         {
-            resultBlock.Text = ""; // Очистка предыдущего вывода
-            
+            resultBlock.Text = "";
+            drawingCanvas.Children.Clear();
 
             if (double.TryParse(velocityInput.Text, out double V1) &&
                 double.TryParse(angleInput.Text, out double ugol1) &&
@@ -58,19 +74,20 @@ namespace ParabolaSimulation
                 Parabola p = new Parabola();
                 p.InformLanding += message => resultBlock.Text += message + "\n";
 
-
                 p.LaunchConditions(V1, ugol1, m);
                 p.EulerMethodForBirdGame(p.V, p.ugol, dt);
-                
-                resultBlock.FontSize = 18;
-                resultBlock.Text += $"Дальность полёта: {p.x_max:F4} м\n";
-                resultBlock.Text += $"Максимальная высота: {p.y_max:F4} м\n";
-                resultBlock.Text += $"Время полёта: {p.T_max:F4} с\n";
+
+                resultBlock.Text += $"Дальность полёта: {p.x_max:F2} м\n";
+                resultBlock.Text += $"Максимальная высота: {p.y_max:F2} м\n";
+                resultBlock.Text += $"Время полёта: {p.T_max:F2} с\n";
+
+                p.DrawGrid(drawingCanvas);
+                p.DrawTrajectory(drawingCanvas);
             }
             else
             {
-                resultBlock.FontSize = 24;
-                resultBlock.Text = "Ошибка ввода! Проверьте корректность данных: все поля ввода принимают только числа. Дроби надо писать через запятую.";
+                resultBlock.FontSize = 20;
+                resultBlock.Text = "Ошибка ввода! Используйте только числа. Дроби — через запятую.";
             }
         }
     }
@@ -92,6 +109,7 @@ namespace ParabolaSimulation
 
         public void EulerMethodForBirdGame(double V, double ugol, double dt)
         {
+            this.dt = dt;
             t = t0;
             Vx = V * Math.Cos(ugol);
             Vy = V * Math.Sin(ugol);
@@ -115,6 +133,98 @@ namespace ParabolaSimulation
             T_max = t;
             x_max = X;
             InformLanding?.Invoke("Птица достигла земли.");
+        }
+
+        public void DrawTrajectory(Canvas canvas)
+        {
+            double scaleX = 5;
+            double scaleY = 5;
+
+            double Vx = V * Math.Cos(ugol);
+            double Vy = V * Math.Sin(ugol);
+            double x = 0, y = 0, t = 0;
+
+            Polyline polyline = new Polyline
+            {
+                Stroke = Brushes.Red,
+                StrokeThickness = 2
+            };
+
+            while (y >= 0)
+            {
+                Point point = new Point(x * scaleX, canvas.Height - y * scaleY);
+                polyline.Points.Add(point);
+
+                double Ax = -(0.1 / M) * Vx;
+                double Ay = -9.81 - (0.1 / M) * Vy;
+
+                Vx += Ax * dt;
+                Vy += Ay * dt;
+                x += Vx * dt;
+                y += Vy * dt;
+                t += dt;
+            }
+
+            canvas.Children.Add(polyline);
+        }
+
+        public void DrawGrid(Canvas canvas, double step = 30)
+        {
+            double width = canvas.ActualWidth;
+            double height = canvas.ActualHeight;
+
+            // Горизонтальные линии
+            for (double y = 0; y <= height; y += step)
+            {
+                Line hLine = new Line
+                {
+                    X1 = 0,
+                    Y1 = y,
+                    X2 = width,
+                    Y2 = y,
+                    Stroke = Brushes.Black,
+                    StrokeThickness = 1
+                };
+                canvas.Children.Add(hLine);
+            }
+
+            // Вертикальные линии
+            for (double x = 0; x <= width; x += step)
+            {
+                Line vLine = new Line
+                {
+                    X1 = x,
+                    Y1 = 0,
+                    X2 = x,
+                    Y2 = height,
+                    Stroke = Brushes.Black,
+                    StrokeThickness = 1
+                };
+                canvas.Children.Add(vLine);
+            }
+
+            // Выделение координатных осей
+            Line xAxis = new Line
+            {
+                X1 = 0,
+                Y1 = height,
+                X2 = width,
+                Y2 = height,
+                Stroke = Brushes.Black,
+                StrokeThickness = 2
+            };
+            canvas.Children.Add(xAxis);
+
+            Line yAxis = new Line
+            {
+                X1 = 0,
+                Y1 = 0,
+                X2 = 0,
+                Y2 = height,
+                Stroke = Brushes.Black,
+                StrokeThickness = 2
+            };
+            canvas.Children.Add(yAxis);
         }
     }
 
