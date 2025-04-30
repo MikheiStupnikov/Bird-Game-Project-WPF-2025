@@ -6,6 +6,16 @@ using System.Windows.Shapes;
 
 namespace ParabolaSimulation
 {
+    public class App : Application
+    {
+        [STAThread]
+        public static void Main()
+        {
+            App app = new App();
+            app.Run(new MainWindow());
+        }
+    }
+
     public class MainWindow : Window
     {
         private TextBox velocityInput, angleInput, timeStepInput, massInput;
@@ -17,6 +27,11 @@ namespace ParabolaSimulation
             Title = "Моделирование полета птицы";
             Width = 1000;
             Height = 800;
+
+            DockPanel dock = new DockPanel();
+            Menu menu = CreateMenu();
+            DockPanel.SetDock(menu, Dock.Top);
+            dock.Children.Add(menu);
 
             ScrollViewer scrollViewer = new ScrollViewer();
             StackPanel panel = new StackPanel { Margin = new Thickness(10) };
@@ -58,7 +73,62 @@ namespace ParabolaSimulation
             panel.Children.Add(drawingCanvas);
 
             scrollViewer.Content = panel;
-            Content = scrollViewer;
+            dock.Children.Add(scrollViewer);
+            Content = dock;
+        }
+
+        private Menu CreateMenu()
+        {
+            Menu mainMenu = new Menu();
+
+            MenuItem basicMenu = new MenuItem { Header = "Меню" };
+            MenuItem exitItem = new MenuItem { Header = "Выход" };
+            MenuItem clearInputItem = new MenuItem { Header = "Очистить ввод" };
+
+
+
+            clearInputItem.Click += (s, e) =>
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    "Вы уверены, что хотите очистить введённые данные?",
+                    "Подтверждение действия",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    ClearInputFields();
+                }
+            };
+            exitItem.Click += (s, e) =>
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    "Вы уверены, что хотите выйти?",
+                    "Подтверждение выхода",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    Close();
+                }
+            };
+
+            basicMenu.Items.Add(clearInputItem);
+            basicMenu.Items.Add(exitItem);
+
+            MenuItem helpMenu = new MenuItem { Header = "Справка" };
+            MenuItem aboutItem = new MenuItem { Header = "О программе" };
+            aboutItem.Click += (s, e) =>
+            {
+                MessageBox.Show("Игра про птичку\n2025", "О программе", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
+            helpMenu.Items.Add(aboutItem);
+
+            mainMenu.Items.Add(basicMenu);
+            mainMenu.Items.Add(helpMenu);
+
+            return mainMenu;
         }
 
         private void CalculateButton_Click(object sender, RoutedEventArgs e)
@@ -83,13 +153,24 @@ namespace ParabolaSimulation
 
                 p.DrawGrid(drawingCanvas);
                 p.DrawTrajectory(drawingCanvas);
+
+
             }
             else
             {
-                resultBlock.FontSize = 20;
-                resultBlock.Text = "Ошибка ввода! Используйте только числа. Дроби — через запятую.";
+                MessageBox.Show("Ошибка ввода! Используйте только числа. Дроби — через запятую.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void ClearInputFields()
+        {
+            velocityInput.Clear();
+            angleInput.Clear();
+            timeStepInput.Clear();
+            massInput.Clear();
+            resultBlock.Text = "";
+            drawingCanvas.Children.Clear();
+        }
+
     }
 
     public class Parabola
@@ -173,7 +254,6 @@ namespace ParabolaSimulation
             double width = canvas.ActualWidth;
             double height = canvas.ActualHeight;
 
-            // Горизонтальные линии
             for (double y = 0; y <= height; y += step)
             {
                 Line hLine = new Line
@@ -188,7 +268,6 @@ namespace ParabolaSimulation
                 canvas.Children.Add(hLine);
             }
 
-            // Вертикальные линии
             for (double x = 0; x <= width; x += step)
             {
                 Line vLine = new Line
@@ -203,7 +282,6 @@ namespace ParabolaSimulation
                 canvas.Children.Add(vLine);
             }
 
-            // Выделение координатных осей
             Line xAxis = new Line
             {
                 X1 = 0,
@@ -225,16 +303,6 @@ namespace ParabolaSimulation
                 StrokeThickness = 2
             };
             canvas.Children.Add(yAxis);
-        }
-    }
-
-    public class App : Application
-    {
-        [STAThread]
-        public static void Main()
-        {
-            App app = new App();
-            app.Run(new MainWindow());
         }
     }
 }
