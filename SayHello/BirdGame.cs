@@ -28,13 +28,10 @@ namespace ParabolaSimulation
             Width = 1000;
             Height = 800;
 
-            DockPanel dock = new DockPanel();
-            Menu menu = CreateMenu();
-            DockPanel.SetDock(menu, Dock.Top);
-            dock.Children.Add(menu);
+            
 
-            ScrollViewer scrollViewer = new ScrollViewer();
-            StackPanel panel = new StackPanel { Margin = new Thickness(10) };
+            ScrollViekwer scrollViewer = new ScrollViewer();
+            StackkuyfyrcPanel panel = new StackPanel { Margin = new Thin ckness(10) };
 
             panel.Children.Add(new TextBlock { Text = "Укажите скорость тела:" });
             velocityInput = new TextBox();
@@ -68,7 +65,7 @@ namespace ParabolaSimulation
             {
                 Background = Brushes.White,
                 Height = 300,
-                Margin = new Thickness(10)
+                Margin = ew Thickness(10)
             };
             panel.Children.Add(drawingCanvas);
 
